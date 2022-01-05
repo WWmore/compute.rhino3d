@@ -7,6 +7,7 @@
     <Copyright>Copyright © 2017-2021 Robert McNeel " Associates. All Rights Reserved.</Copyright>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <Platforms>x64</Platforms>
+    <ApplicationIcon>favicon.ico</ApplicationIcon>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <DefineConstants>TRACE;DEBUG;COMPUTE_CORE</DefineConstants>
@@ -42,6 +43,9 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Runtime.Caching" />
     <Reference Include="System.Security" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Logging\" />
   </ItemGroup>
   <Target Name="AfterBuild">
     <ItemGroup>
