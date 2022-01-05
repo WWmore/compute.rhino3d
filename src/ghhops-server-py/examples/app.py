@@ -2,7 +2,7 @@
 from flask import Flask
 import ghhops_server as hs
 import rhino3dm
-
+import numpy as np
 
 # register hops app as middleware
 app = Flask(__name__)
@@ -74,7 +74,9 @@ def ruled_surface(a: rhino3dm.Point3d,
                   d: rhino3dm.Point3d):
     edge1 = rhino3dm.LineCurve(a, b)
     edge2 = rhino3dm.LineCurve(c, d)
+    print(np.arange(5))
     return rhino3dm.NurbsSurface.CreateRuledSurface(edge1, edge2)
+
 
 
 if __name__ == "__main__":

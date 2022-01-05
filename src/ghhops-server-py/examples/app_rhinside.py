@@ -10,7 +10,6 @@ import Rhino  # noqa
 
 hops = hs.Hops(app=rhinoinside)
 
-
 @hops.component(
     "/add",
     name="Add",

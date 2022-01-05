@@ -78,5 +78,37 @@ def ruled_surface(a, b, c, d):
     return rhino3dm.NurbsSurface.CreateRuledSurface(edge1, edge2)
 
 
+
+@hops.component(
+    "/ttt",
+    name="Mesh",
+    nickname="mesh",
+    description="Transfer into a mesh from input mesh",
+    category="Mesh",
+    subcategory="RectangularPatch",
+    inputs=[
+        hs.HopsNumber("ver_x","x"),
+        hs.HopsNumber("ver_y","y"),
+        hs.HopsNumber("ver_z","z"),
+        hs.HopsNumber("if1", "fid1"),
+        hs.HopsNumber("if2", "fid2"),
+        hs.HopsNumber("if3", "fid3"),
+        hs.HopsNumber("if4", "fid4"),
+    ],
+    #outputs=[hs.HopsPoint("P", "points", "points of polyline")],
+    outputs=[hs.HopsNumber("x", "points", "points of polyline"),
+            hs.HopsNumber("y", "points", "points of polyline"),
+            hs.HopsNumber("z", "points", "points of polyline")],
+    #outputs=[hs.HopsMesh("mesh")],
+)
+def get_mesh_polyline_points(verx,very,verz,if1,if2,if3,if4):
+    #vertices = np.arange(12).reshape(-1,3)
+    # vertices = np.c_[verx,very,verz]
+    # mesh = Mesh()
+    # flist = np.c_[if1,if2,if3,if4]
+    # mesh.make_mesh(vertices,flist.tolist())
+    # return mesh.vertices[:,0],mesh.vertices[:,1],mesh.vertices[:,2]
+    return 1,2,3#vertices[:,0],vertices[:,1],vertices[:,2]
+
 if __name__ == "__main__":
     hops.start(debug=True)
