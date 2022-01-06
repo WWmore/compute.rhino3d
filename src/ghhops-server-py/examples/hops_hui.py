@@ -173,7 +173,7 @@ def polyline(mesh:rhino3dm.Mesh):
 
 
 @hops.component(
-    "/beziersss",
+    "/bezier_splinesss",
     name="bezier",
     nickname="bz",
     description="Get Bezier splines.",
@@ -187,6 +187,7 @@ def polyline(mesh:rhino3dm.Mesh):
         ],
     outputs=[
             hs.HopsPoint("ctrlP","P","all ctrl points"),
+            hs.HopsInteger("indices","ilist","list of control points P",access=hs.HopsParamAccess.LIST),
             hs.HopsPoint("an","V","anchor points"),
             hs.HopsPoint("e1","e1","unit tangent vector"),
             hs.HopsPoint("e2","e2","unit principal normal vector"),
@@ -207,14 +208,36 @@ def bezier(mesh:rhino3dm.Mesh,web,vn:rhino3dm.Vector3d,i,w,is_ck):
         'is_Checker' : is_ck,
     }
     M = _reading_mesh(mesh,**setting)
-    p,an,e1,e2,e3,r = M.set_quintic_bezier_splines()
-    P = [rhino3dm.Point3d(a[0],a[1],a[2]) for a in p]
+    ctrl_pts,nmlist,an,e1,e2,e3,r = M.set_quintic_bezier_splines()
+
+    # bz = []
+    # k=0
+    # for n in nmlist:
+    #     pt = []
+    #     for i in range(n):
+    #         pt.append(rhino3dm.Point3d(ctrl_pts[k+i][0],ctrl_pts[k+i][1],ctrl_pts[k+i][2]))
+    #     c = rhino3dm.NurbsCurve.Create(False,5,pt)
+    #     bz.append(c)
+    #     k += n
+
+    # ilist = []
+    # k=0
+    # for n in nmlist:
+    #     ilist.append([k+i for i in range(n)])
+    #     #ilist.append([rhino3dm.Point3d(k+i,0,0) for i in range(n)])
+    #     k += n
+    #ilist=[i for i in range(nmlist[0])] ### work to get list of numbers
+    #print(ilist)
+
+    ilist = [(i-1)*5+1 for i in nmlist] # ctrl-points
+
+    P = [rhino3dm.Point3d(a[0],a[1],a[2]) for a in ctrl_pts]
     AN = [rhino3dm.Point3d(a[0],a[1],a[2]) for a in an]
     E1 = [rhino3dm.Point3d(a[0],a[1],a[2]) for a in e1]
     E2 = [rhino3dm.Point3d(a[0],a[1],a[2]) for a in e2]
     E3 = [rhino3dm.Point3d(a[0],a[1],a[2]) for a in e3]
     R = [rhino3dm.Point3d(a[0],a[1],a[2]) for a in r]
-    return P,AN,E1,E2,E3,R
+    return P,ilist,AN,E1,E2,E3,R
 #==================================================================
 
 if __name__ == "__main__":
