@@ -173,7 +173,7 @@ def polyline(mesh:rhino3dm.Mesh):
 
 
 @hops.component(
-    "/bezier_splinesss",
+    "/bezier__spline",
     name="bezier",
     nickname="bz",
     description="Get Bezier splines.",
@@ -188,6 +188,7 @@ def polyline(mesh:rhino3dm.Mesh):
     outputs=[
             hs.HopsPoint("ctrlP","P","all ctrl points"),
             hs.HopsInteger("indices","ilist","list of control points P",access=hs.HopsParamAccess.LIST),
+            hs.HopsCurve("Bezier","Bs","list of quintic Bezier splines",access=hs.HopsParamAccess.LIST),
             hs.HopsPoint("an","V","anchor points"),
             hs.HopsPoint("e1","e1","unit tangent vector"),
             hs.HopsPoint("e2","e2","unit principal normal vector"),
@@ -210,16 +211,36 @@ def bezier(mesh:rhino3dm.Mesh,web,vn:rhino3dm.Vector3d,i,w,is_ck):
     M = _reading_mesh(mesh,**setting)
     ctrl_pts,nmlist,an,e1,e2,e3,r = M.set_quintic_bezier_splines()
 
+    ilist = [(i-1)*5+1 for i in nmlist] # ctrl-points ## for regular patch
+
+
+    ### GET QUINTIC BEZIER SPLINES:
+    bz = []
+    k=0
+    for n in nmlist:
+        m = np.arange((n-1)*5).reshape(-1,5) ##num of a row of ctrl-points
+        mm = np.c_[m,(1+np.arange(n-1))*5] + k
+        pt = []
+        for i in range(mm.shape[0]):
+            "for each Bezier CRV WITH 6 CTRL-POINTS" 
+            pt = [rhino3dm.Point3d(ctrl_pts[j][0],ctrl_pts[j][1],ctrl_pts[j][2]) for j in mm[i]]
+            c = rhino3dm.NurbsCurve.Create(False,5,pt)
+            bz.append(c)
+        k += (n-1)*5+1
+
+    ### GET MULTI-ROW WHOLE NURBS-CURVE:
     # bz = []
     # k=0
     # for n in nmlist:
+    #     m = (n-1)*5+1
     #     pt = []
-    #     for i in range(n):
+    #     for i in range(m):
     #         pt.append(rhino3dm.Point3d(ctrl_pts[k+i][0],ctrl_pts[k+i][1],ctrl_pts[k+i][2]))
     #     c = rhino3dm.NurbsCurve.Create(False,5,pt)
     #     bz.append(c)
-    #     k += n
+    #     k += m
 
+    ### GET LIST:
     # ilist = []
     # k=0
     # for n in nmlist:
@@ -229,15 +250,13 @@ def bezier(mesh:rhino3dm.Mesh,web,vn:rhino3dm.Vector3d,i,w,is_ck):
     #ilist=[i for i in range(nmlist[0])] ### work to get list of numbers
     #print(ilist)
 
-    ilist = [(i-1)*5+1 for i in nmlist] # ctrl-points
-
     P = [rhino3dm.Point3d(a[0],a[1],a[2]) for a in ctrl_pts]
     AN = [rhino3dm.Point3d(a[0],a[1],a[2]) for a in an]
     E1 = [rhino3dm.Point3d(a[0],a[1],a[2]) for a in e1]
     E2 = [rhino3dm.Point3d(a[0],a[1],a[2]) for a in e2]
     E3 = [rhino3dm.Point3d(a[0],a[1],a[2]) for a in e3]
     R = [rhino3dm.Point3d(a[0],a[1],a[2]) for a in r]
-    return P,ilist,AN,E1,E2,E3,R
+    return P,ilist,bz,AN,E1,E2,E3,R
 #==================================================================
 
 if __name__ == "__main__":
