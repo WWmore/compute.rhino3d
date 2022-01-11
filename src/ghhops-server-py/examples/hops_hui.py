@@ -91,6 +91,7 @@ def main(mesh:rhino3dm.Mesh,n,w1,w2,d,web,restart=False):
     ###-------------------------------------------
     ### MAKE RHINO MESH:
     Mout=rhino3dm.Mesh()
+
     for v in AG.vertexlist:
         Mout.Vertices.Add(v[0],v[1],v[2])
     
