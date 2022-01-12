@@ -19,6 +19,7 @@ from HOPS.hops_agnet import AGNet
 # register hops app as middleware
 app = Flask(__name__)
 hops: hs.HopsFlask = hs.Hops(app)
+#hops = hs.Hops(app,debug=True)
 #-------------------------------------------------------
 
 
@@ -174,7 +175,7 @@ def polyline(mesh:rhino3dm.Mesh):
 
 
 @hops.component(
-    "/bezier__spline",
+    "/bezier_splinessss_strip",
     name="bezier",
     nickname="bz",
     description="Get Bezier splines.",
@@ -182,9 +183,16 @@ def polyline(mesh:rhino3dm.Mesh):
         hs.HopsMesh("mesh", "Mesh", "The optimized mesh."),
         hs.HopsString("web","web","constraint of net or web"),
         hs.HopsVector("VN","VN","vertex normals",access=hs.HopsParamAccess.LIST),
-        hs.HopsInteger("i-th","ipoly","which polyline"), ## only 1,2,3,4
-        hs.HopsNumber("weight","weight","which polyline",default=0.005),
-        hs.HopsBoolean("checker","ck","switch if at checker-vertices",default=False),
+        hs.HopsInteger("i-th","ipoly","which polyline"),
+        hs.HopsNumber("weight1","w1(CtrlPoint)","fairness of Bezier ctrl-points",default=0.005),
+        hs.HopsNumber("weight2","w2(Strip)","fairness of (unrolled) developable strip",default=0.005),
+        hs.HopsInteger("numDenser","numDenser","number of denser rulings",default=20),
+        hs.HopsNumber("width","width","width of developable strip",default=0.5),
+        hs.HopsNumber("distInterval","interval","interval distance of unrolling strips",default=1.5),
+        hs.HopsBoolean("checker","ck/all","switch if at checker-vertices",default=True),
+        hs.HopsBoolean("denser","dense/sparse","switch if sparse or denser rulings",default=False),
+        hs.HopsBoolean("rectify by E3","optRuling/cmptRuling","switch if optimized or directly computed rulings",default=False),
+        hs.HopsBoolean("singulrMesh","singular/regular","switch if singular or regular mesh",default=False),
         ],
     outputs=[
             hs.HopsPoint("ctrlP","P","all ctrl points"),
@@ -195,9 +203,11 @@ def polyline(mesh:rhino3dm.Mesh):
             hs.HopsPoint("e2","e2","unit principal normal vector"),
             hs.HopsPoint("e3","e3","unit binormal vector"),
             hs.HopsPoint("r","r","unit ruling vector"),
+            hs.HopsMesh("Strip", "Strip", "3D mesh of developable strips"),
+            hs.HopsMesh("unrollStrip", "unrollment", "2D mesh of unrolled developable strips"),
             ]
 )
-def bezier(mesh:rhino3dm.Mesh,web,vn:rhino3dm.Vector3d,i,w,is_ck):
+def bezier(mesh:rhino3dm.Mesh,web,vn:rhino3dm.Vector3d,i,w1,w2,num_dense,width,dist,is_ck,is_dense,is_optruling,is_singular=False):
     x = [n.X for n in vn]
     y = [n.Y for n in vn]
     z = [n.Z for n in vn]
@@ -206,11 +216,18 @@ def bezier(mesh:rhino3dm.Mesh,web,vn:rhino3dm.Vector3d,i,w,is_ck):
         web : True,
         'VN' : VN,
         'set_Poly' : i,
-        'weight_CtrlP' : w,
+        'weight_CtrlP' : w1,
+        'weight_SmoothVertex' : w2,
+        'num_DenserRuling' : num_dense,
+        'set_ScaleOffset' : width,
+        'set_DistInterval' : dist,
         'is_Checker' : is_ck,
+        'is_DenserRuling' : is_dense,
+        'is_RulingRectify' : is_optruling,
+        'is_Singular' : is_singular,
     }
     M = _reading_mesh(mesh,**setting)
-    ctrl_pts,nmlist,an,e1,e2,e3,r = M.set_quintic_bezier_splines()
+    ctrl_pts,nmlist,an,e1,e2,e3,r,sm,unm = M.set_quintic_bezier_splines()
 
     ilist = [(i-1)*5+1 for i in nmlist] # ctrl-points ## for regular patch
 
@@ -257,7 +274,21 @@ def bezier(mesh:rhino3dm.Mesh,web,vn:rhino3dm.Vector3d,i,w,is_ck):
     E2 = [rhino3dm.Point3d(a[0],a[1],a[2]) for a in e2]
     E3 = [rhino3dm.Point3d(a[0],a[1],a[2]) for a in e3]
     R = [rhino3dm.Point3d(a[0],a[1],a[2]) for a in r]
-    return P,ilist,bz,AN,E1,E2,E3,R
+
+    ### MAKE RHINO MESH:
+    strip=rhino3dm.Mesh()
+    for v in sm.vertices:
+        strip.Vertices.Add(v[0],v[1],v[2])
+    for f in sm.faces_list():
+        strip.Faces.AddFace(f[0],f[1],f[2],f[3])
+
+    unroll=rhino3dm.Mesh()
+    for v in unm.vertices:
+        unroll.Vertices.Add(v[0],v[1],v[2])
+    for f in unm.faces_list():
+        unroll.Faces.AddFace(f[0],f[1],f[2],f[3])
+
+    return P,ilist,bz,AN,E1,E2,E3,R,strip,unroll
 #==================================================================
 
 if __name__ == "__main__":
