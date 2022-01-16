@@ -52,16 +52,17 @@ def _reading_mesh(mesh,opt=False,**kwargs):
 
 ### MAIN OPTIMIZATION:
 @hops.component(
-    "/read_1_mesh",
+    "/read_a_mesh",
     name="processMesh",
     nickname="pM",
     description="Process a mesh.",
     inputs=[
         hs.HopsMesh("mesh", "Mesh", "The mesh to process."),
+        hs.HopsBoolean("singulrMesh","singular/regular","switch if singular or regular mesh",default=False),
         hs.HopsInteger("iteration","iter","num of iteration."),
         hs.HopsNumber("fairness","w1(fair)","weight of fairness.",default=0.005),
         hs.HopsNumber("closness","w2(closeness)","weight of self-closness.",default=0.01),
-        hs.HopsNumber("direction","direction","direction of polyline.",default=0),
+        hs.HopsNumber("direction","direction","0,1 for asy./geo. direction of AGG/GAA web.",default=0),
         hs.HopsString("web","web","constraint of net or web"),
         hs.HopsBoolean("Restart","Restart","Restart the optimization",default=False),
     ],
@@ -69,13 +70,14 @@ def _reading_mesh(mesh,opt=False,**kwargs):
             hs.HopsPoint("an","Vertices","all vertices"),
             hs.HopsPoint("vn","Normal","normals at V")]
 )
-def main(mesh:rhino3dm.Mesh,n,w1,w2,d,web,restart=False):
+def main(mesh:rhino3dm.Mesh,is_singular,n,w1,w2,d,web,restart=False):
     #assert isinstance(mesh, rhino3dm.Mesh)
     #m=rhino3dm.Mesh()
     ###-------------------------------------------
     M = _reading_mesh(mesh,opt=True)
     ###-------------------------------------------
     constraints = {
+        'is_Singular' : is_singular,
         'num_itera' : n,
         'weight_fairness' : w1,
         'weight_closeness' : w2,
@@ -175,7 +177,7 @@ def polyline(mesh:rhino3dm.Mesh):
 
 
 @hops.component(
-    "/bezier_splinessss_strip",
+    "/bezier_spline_strips",
     name="bezier",
     nickname="bz",
     description="Get Bezier splines.",
