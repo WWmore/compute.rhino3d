@@ -177,24 +177,25 @@ def polyline(mesh:rhino3dm.Mesh):
 
 
 @hops.component(
-    "/bezier_spline_strips",
+    "/Bezier_Spline_strips",
     name="bezier",
     nickname="bz",
     description="Get Bezier splines.",
     inputs=[
         hs.HopsMesh("mesh", "Mesh", "The optimized mesh."),
+        hs.HopsBoolean("singulrMesh","singular/regular","switch if singular or regular mesh",default=False),
         hs.HopsString("web","web","constraint of net or web"),
         hs.HopsVector("VN","VN","vertex normals",access=hs.HopsParamAccess.LIST),
         hs.HopsInteger("i-th","ipoly","which polyline"),
         hs.HopsNumber("weight1","w1(CtrlPoint)","fairness of Bezier ctrl-points",default=0.005),
+        hs.HopsBoolean("checker","ck/all","switch if at checker-vertices",default=True),
+        hs.HopsNumber("numChecker","numChecker","number of checker selection",default=4),
+        hs.HopsBoolean("rectify by E3","optRuling/cmptRuling","switch if optimized or directly computed rulings",default=False),
         hs.HopsNumber("weight2","w2(Strip)","fairness of (unrolled) developable strip",default=0.005),
+        hs.HopsBoolean("denser","dense/sparse","switch if sparse or denser rulings",default=False),
         hs.HopsInteger("numDenser","numDenser","number of denser rulings",default=20),
         hs.HopsNumber("width","width","width of developable strip",default=0.5),
         hs.HopsNumber("distInterval","interval","interval distance of unrolling strips",default=1.5),
-        hs.HopsBoolean("checker","ck/all","switch if at checker-vertices",default=True),
-        hs.HopsBoolean("denser","dense/sparse","switch if sparse or denser rulings",default=False),
-        hs.HopsBoolean("rectify by E3","optRuling/cmptRuling","switch if optimized or directly computed rulings",default=False),
-        hs.HopsBoolean("singulrMesh","singular/regular","switch if singular or regular mesh",default=False),
         ],
     outputs=[
             hs.HopsPoint("ctrlP","P","all ctrl points"),
@@ -209,7 +210,7 @@ def polyline(mesh:rhino3dm.Mesh):
             hs.HopsMesh("unrollStrip", "unrollment", "2D mesh of unrolled developable strips"),
             ]
 )
-def bezier(mesh:rhino3dm.Mesh,web,vn:rhino3dm.Vector3d,i,w1,w2,num_dense,width,dist,is_ck,is_dense,is_optruling,is_singular=False):
+def bezier(mesh:rhino3dm.Mesh,is_singular,web,vn:rhino3dm.Vector3d,i,w1,is_ck,num_ck,is_optruling,w2,is_dense,num_dense,width,dist):
     x = [n.X for n in vn]
     y = [n.Y for n in vn]
     z = [n.Z for n in vn]
@@ -224,6 +225,7 @@ def bezier(mesh:rhino3dm.Mesh,web,vn:rhino3dm.Vector3d,i,w1,w2,num_dense,width,d
         'set_ScaleOffset' : width,
         'set_DistInterval' : dist,
         'is_Checker' : is_ck,
+        'num_Checker' : num_ck,
         'is_DenserRuling' : is_dense,
         'is_RulingRectify' : is_optruling,
         'is_Singular' : is_singular,
