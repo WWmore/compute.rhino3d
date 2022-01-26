@@ -143,7 +143,7 @@ def checker_tian_vertex(mesh:rhino3dm.Mesh):
 #==================================================================
 
 @hops.component(
-    "/select_vertices_2_fix",
+    "/select_vertices_to_fix",
     name="selectVertex",
     nickname="Vi",
     description="Get indices of vertices.",
@@ -392,6 +392,6 @@ def bezier(mesh:rhino3dm.Mesh,web,vn:rhino3dm.Vector3d,i,w1,is_ck,num_ck,is_optr
 
 if __name__ == "__main__":
     #app.run(host="10.8.0.10",debug=True)
-    #app.run(host="10.8.0.12",debug=True)
-    app.run(debug=True)
+    app.run(host="10.8.0.12",debug=True) ##Hui's VPN
+    #app.run(debug=True)
 
