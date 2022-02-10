@@ -52,7 +52,7 @@ def _reading_mesh(mesh,opt=False,**kwargs):
 
 ### MAIN OPTIMIZATION:
 @hops.component(
-    "/read_aa_mesh",
+    "/read_aaa_mesh",
     name="processMesh",
     nickname="pM",
     description="Process a mesh.",
@@ -60,20 +60,20 @@ def _reading_mesh(mesh,opt=False,**kwargs):
         hs.HopsMesh("mesh", "Mesh", "The mesh to process."),
         hs.HopsString("web","web","constraint of net or web"),
         hs.HopsNumber("direction","direction","0,1 for asy./geo. direction of AGG/GAA web.",default=0),
-        hs.HopsInteger("iteration","iter","num of iteration."),
-        hs.HopsNumber("fairness","w1(fair)","weight of fairness.",default=0.005),
+        hs.HopsInteger("iteration","iter","num of iteration.",default=10),
+        hs.HopsNumber("fairness","w1(fair)","weight of fairness.",default=0.000),
         hs.HopsNumber("closness","w2(closeness)","weight of self-closness.",default=0.01),
-        hs.HopsNumber("glide","w3(glide)","weight of gliding boundaries"),
-        hs.HopsInteger("glideBdry","index(bdry)","index of glided boundary(s)",access=hs.HopsParamAccess.LIST),
-        hs.HopsNumber("fix","w4(fix)","weight of fixed vertices"),
-        hs.HopsInteger("fixVertices","index(fix)","index of fixed vertices",access=hs.HopsParamAccess.LIST),
+        hs.HopsNumber("glide","w3(glide)","weight of gliding boundaries",default=0),
+        hs.HopsInteger("glideBdry","index(bdry)","index of glided boundary(s)",access=hs.HopsParamAccess.LIST,default=0),
+        hs.HopsNumber("fix","w4(fix)","weight of fixed vertices",default=0),
+        hs.HopsInteger("fixVertices","index(fix)","index of fixed vertices",access=hs.HopsParamAccess.LIST,default=0),
         hs.HopsBoolean("Restart","Restart","Restart the optimization",default=False),
     ],
     outputs=[hs.HopsMesh("mesh", "mesh", "The new mesh."),
             hs.HopsPoint("an","Vertices","all vertices"),
             hs.HopsPoint("vn","Normal","normals at V")]
 )
-def main(mesh:rhino3dm.Mesh,web,d,n,w1,w2,w3,ind3,w4,ind4,restart):
+def main(mesh:rhino3dm.Mesh,web,d=0,n=10,w1=0.0000,w2=0.01,w3=0,ind3=0,w4=0,ind4=0,restart=True):
     #assert isinstance(mesh, rhino3dm.Mesh)
     #m=rhino3dm.Mesh()
     ###-------------------------------------------

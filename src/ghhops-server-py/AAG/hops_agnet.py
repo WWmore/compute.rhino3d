@@ -248,7 +248,7 @@ class AGNet(GuidedProjection_AGNet):
         
     def get_agweb_an_n_on(self):
         V = self.mesh.vertices
-        v = self.mesh.rr_star_corner[0]
+        v = self.mesh.rr_star[:,0]
         n = self.mesh.vertex_normals()[v]
         num = len(self.mesh.ind_rr_star_v4f4)
         if not self.is_initial:
