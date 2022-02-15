@@ -248,7 +248,7 @@ class Gridshell_AGNet(MMesh):
         return asym_or_geo,diagpoly 
                 
     
-    ##@on_trait_change('show_ply_bezier_crv,show_ply_bezier_controlpoints')
+    ##@on_trait_change('show_rectify_strip_ctrlnet,show_rectify_strip_diagnet')
     def set_quintic_bezier_splines(self):
         asym_or_geo,diagpoly,is_another_poly = self._set_ith_polylines()
         is_one_or_another = not is_another_poly

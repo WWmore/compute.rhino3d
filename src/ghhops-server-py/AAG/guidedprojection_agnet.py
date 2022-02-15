@@ -103,7 +103,8 @@ class GuidedProjection_AGNet(GuidedProjectionBase):
 
         'AAG_singular' :0,
         
-        'planar_plys' : 0,
+        'planar_ply1' : 0,
+        'planar_ply2' : 0,
         
         }
 
@@ -123,7 +124,7 @@ class GuidedProjection_AGNet(GuidedProjectionBase):
         
         self.set_another_polyline = 0
         
-        self._ver_poly_strip = None
+        self._ver_poly_strip1,self._ver_poly_strip2 = None,None
         
         self.nonsym_eps = 0.01
         self.ind_nonsym_v124,self.ind_nonsym_l12 = None,None
@@ -203,14 +204,21 @@ class GuidedProjection_AGNet(GuidedProjectionBase):
     #     self._glide_reference_polyline = polyline        
         
     @property
-    def ver_poly_strip(self):
-        if self._ver_poly_strip is None:
-            if self.get_weight('planar_plys') or self.opt_AG_const_rii:
+    def ver_poly_strip1(self):
+        if self._ver_poly_strip1 is None:
+            if self.get_weight('planar_ply1') or self.opt_AG_const_rii:
                 self.index_of_mesh_polylines()
             else:
                 self.index_of_strip_along_polyline()
-        return self._ver_poly_strip  
+        return self._ver_poly_strip1  
     
+    @property
+    def ver_poly_strip2(self):
+        if self._ver_poly_strip2 is None:
+            if self.get_weight('planar_ply2'):
+                self.index_of_mesh_polylines()
+        return self._ver_poly_strip2  
+
     @property
     def singular_polylist(self):
         if self._singular_polylist is None:
@@ -332,7 +340,7 @@ class GuidedProjection_AGNet(GuidedProjectionBase):
             N += 6*len(self.mesh.ind_rr_star_v4f4)
             if self.opt_AG_const_rii:
                 "const rii for each geodesic polylines, default v2-v-v4"
-                N += len(self.ver_poly_strip)#TODO
+                N += len(self.ver_poly_strip1)#TODO
             elif self.opt_AG_const_r0:
                 "unique r"
                 N += 1
@@ -344,7 +352,7 @@ class GuidedProjection_AGNet(GuidedProjectionBase):
             Ndgeoliou = N
             
         if self.get_weight('planar_geodesic'):
-            N += 3*len(self.ver_poly_strip[0])
+            N += 3*len(self.ver_poly_strip1[0])
             Ndgeopc = N
         if self.get_weight('ruling'):
             N += 3*len(self.mesh.get_both_isopolyline(self.switch_diagmeth))
@@ -359,9 +367,16 @@ class GuidedProjection_AGNet(GuidedProjectionBase):
             Ndgeo = N
         
         ### PPQ-project:
-        if self.get_weight('planar_plys'):
-            N += 3*len(self.ver_poly_strip)
-            Npp = N
+        if self.get_weight('planar_ply1'):
+            N += 3*len(self.ver_poly_strip1)
+            ## only for \obj_cheng\every_5_PPQ.obj'
+            ##matrix = self.ver_poly_strip1
+            #matrix = self.mesh.rot_patch_matrix[:,::5].T
+            #N += 3*len(matrix)
+            Nppq = N
+        if self.get_weight('planar_ply2'):
+            N += 3*len(self.ver_poly_strip2)
+            Nppo = N   
             
         ### CG / CA project:
         if self.get_weight('diag_1_asymptotic') or self.get_weight('diag_1_geodesic'):
@@ -553,8 +568,11 @@ class GuidedProjection_AGNet(GuidedProjectionBase):
             on = self.get_initial_singular_diagply_normal(is_init=True)
             X = np.r_[X,on.flatten('F')]
             
-        if self.get_weight('planar_plys'):
-            sn = self.get_poly_strip_normal()
+        if self.get_weight('planar_ply1'):
+            sn = self.get_poly_strip_normal(pl1=True)
+            X = np.r_[X,sn.flatten('F')]
+        if self.get_weight('planar_ply2'):
+            sn = self.get_poly_strip_normal(pl2=True)
             X = np.r_[X,sn.flatten('F')]
 
         ### CG / CA project:
@@ -993,169 +1011,34 @@ class GuidedProjection_AGNet(GuidedProjectionBase):
         V = self.mesh.vertices
         v,v1,v2,v3,v4 = self.mesh.rr_star[self.mesh.ind_rr_star_v4f4].T
         an = V[v]
-        
         if is_biN:
-            "con_unit_edge"
+            "AGnet: Asy(v1-v-v3), Geo(v2-v-v4), binormal of geodesic crv"
             if self.is_AG_or_GA:
-                eb = (V[v2]-V[v])/np.linalg.norm(V[v2]-V[v],axis=1)[:,None]
-                ed = (V[v4]-V[v])/np.linalg.norm(V[v4]-V[v],axis=1)[:,None]
+                eb = (V[v2]-V[v])#/np.linalg.norm(V[v2]-V[v],axis=1)[:,None]
+                ed = (V[v4]-V[v])#/np.linalg.norm(V[v4]-V[v],axis=1)[:,None]
             else:
-                eb = (V[v1]-V[v])/np.linalg.norm(V[v1]-V[v],axis=1)[:,None]
-                ed = (V[v3]-V[v])/np.linalg.norm(V[v3]-V[v],axis=1)[:,None]
-            n = np.cross(eb,ed)         
+                eb = (V[v1]-V[v])#/np.linalg.norm(V[v1]-V[v],axis=1)[:,None]
+                ed = (V[v3]-V[v])#/np.linalg.norm(V[v3]-V[v],axis=1)[:,None]
+            n = np.cross(eb,ed)
+            i = np.where(np.linalg.norm(n,axis=1)==0)[0]
+            if len(i)!=0:
+                n[i]=np.zeros(3)
+            else:
+                n = n / np.linalg.norm(n,axis=1)[:,None]
             return an, n
-    
-        if True:
-            "con_unit_edge"
-            t1 = (V[v1]-V[v])/np.linalg.norm(V[v1]-V[v],axis=1)[:,None]
-            t1-= (V[v3]-V[v])/np.linalg.norm(V[v3]-V[v],axis=1)[:,None]
-            t2 = (V[v2]-V[v])/np.linalg.norm(V[v2]-V[v],axis=1)[:,None]
-            t2-= (V[v4]-V[v])/np.linalg.norm(V[v4]-V[v],axis=1)[:,None]
-            n = np.cross(t1,t2)
-            return an, n
+        
+        if False:
+            _,_,lt1,lt2 = self.mesh.get_net_osculating_tangents()
+            n = np.cross(lt1[1],lt2[1])
+            n = n / np.linalg.norm(n,axis=1)[:,None]
         else:
-            "osculating tangents"
-            if self.is_initial:
-                if self.get_weight('oscu_tangent'):
-                    _,_,lt1,lt2 = self.mesh.get_net_osculating_tangents()
-                    _,ut1 = lt1
-                    _,ut2 = lt2
-                    n = np.cross(ut1,ut2) 
-                elif self.get_weight('orthogonal'):
-                    V4N = np.cross(V[v1]-V[v3],V[v2]-V[v4]) 
-                    n = V4N / np.linalg.norm(V4N,axis=1)[:,None]
-                else:
-                    n = self.mesh.vertex_normals()[v]
-            else:
-                k = 3 if is_biN else 7
-                c_n = self._Nag-k*len(v)+np.arange(3*len(v))
-                n = self.X[c_n].reshape(-1,3,order='F')
-            return an, n
-
-    def get_agweb_curvature(self): # TODO
-        from curvature import osculating_circle,geodesic_curvature
-        V = self.mesh.vertices
-        VN = self.mesh.vertex_normals()
-        v,v1,v2,v3,v4 = self.mesh.rr_star[self.mesh.ind_rr_star_v4f4].T
-        v,va,vb,vc,vd = self.mesh.rr_star_corner
-        num = len(v)
-        
-        waag = self.get_weight('AAGnet')
-        wgaa = self.get_weight('GAAnet')
-        wgga = self.get_weight('GGAnet')
-        wagg = self.get_weight('AGGnet')
-        waagg = self.get_weight('AAGGnet')
-        wggaa = self.get_weight('GGAAnet')
-        
-        kga_c,kga_s = [], []
-        kg1,kg2 = [],[]
-        for i in range(num):
-            "check Liouville's formula must have Xu * Xv=0, orthogonal net"
-            V0 = V[v[i]]
-            if wgaa or wggaa:
-                "Anet[a,b,c,d], geodesic[1,2,3,4]"
-                V1,V2,V3,V4 = V[v1[i]],V[v2[i]],V[v3[i]],V[v4[i]]
-                Va,Vb,Vc,Vd = V[va[i]],V[vb[i]],V[vc[i]],V[vd[i]]
-            elif waag or waagg:
-                "Anet[1,2,3,4], geodesic[a,b,c,d]"
-                V1,V2,V3,V4 = V[va[i]],V[vb[i]],V[vc[i]],V[vd[i]]
-                Va,Vb,Vc,Vd = V[v1[i]],V[v2[i]],V[v3[i]],V[v4[i]]
-            elif wgga:
-                pass
-            elif wagg:
-                pass
-            
-            N = np.cross(Va-V0,Vb-V0)
-            N = N / np.linalg.norm(N)     
-            if np.dot(VN[v[i]], N)<0:
-                N = -N
-            kg13 = geodesic_curvature(N,V0,V1,V3)
-            kg24 = geodesic_curvature(N,V0,V2,V4)
-            kgac = geodesic_curvature(N,V0,Va,Vc)
-            kgbd = geodesic_curvature(N,V0,Vb,Vd)  
-            
-            fr13,_,_ = osculating_circle(V0,Va,Vc)
-            t13= fr13[0]
-            #fr24,_,_ = osculating_circle(V0,Vb,Vd)
-            #t24 = fr24[0]
-            if self.set_another_polyline:
-                fr,_,_ = osculating_circle(V0,V2,V4)
-            else:
-                fr,_,_ = osculating_circle(V0,V1,V3)
-            t = fr[0]  
-            cos = np.dot(t13,t)
-            if cos**2>1:
-                sin=0
-                print('cos**2>1',i)
-            else:
-                sin = np.sqrt(1-cos**2)
-            kg1cos, kg2sin = kgac*cos, kgbd*sin
-            kga_c.append(kg1cos)
-            kga_s.append(kg2sin)
-            kg1.append(kg13)
-            kg2.append(kg24)
-                
-        if wgaa or waag:
-            if self.set_another_polyline:
-                return np.array(kga_c),np.array(kga_s),np.array(kg2)
-            else:
-                return np.array(kga_c),np.array(kga_s),np.array(kg1)
-        elif waag or waagg:
-            return np.array(kga_c),np.array(kga_s),np.r_[np.array(kg1),np.array(kg2)]
-        elif wgga:
-            pass
-        elif wagg:
-            pass
-        
-    def get_agweb_liouville(self,diagnet): #no use in the project now, need to change!
-        "X +=[lu1,tu1;  lla,llc,g1, lg1,tg1] for one polyline"
-        d = not diagnet
-        _,_,ltu1,_ = self.mesh.get_net_osculating_tangents(diagnet=d)
-        lu1, tu1 = ltu1
-        Xg = np.r_[lu1,tu1.flatten('F')] #lu1,tu1
-        
-        l,t,lt1,lt2 = self.mesh.get_net_osculating_tangents(diagnet=diagnet)
-        [ll1,ll2,ll3,ll4],[t1,t2] = l,t
-        if self.set_another_polyline:
-            Xg = np.r_[Xg,ll2,ll4,t2.flatten('F')] # lla,llc,g1
-            Xg = np.r_[Xg,lt2[0],lt2[1].flatten('F')] # lg1,tg1
-            c = np.mean(np.einsum('ij,ij->i',tu1,lt2[1]))
-            Xg = np.r_[Xg,c]
-        else:
-            Xg = np.r_[Xg,ll1,ll3,t1.flatten('F')]
-            Xg = np.r_[Xg,lt1[0],lt1[1].flatten('F')]  
-            c = np.mean(np.einsum('ij,ij->i',tu1,lt1[1]))
-            Xg = np.r_[Xg,c]
-        return Xg
-
-    def get_agweb_liouville_tangents(self,geo=False):
-        if self.is_initial:
-            X = self._X0
-        else:
-            X = self.X
-        v,_,_,_,_ = self.mesh.rr_star[self.mesh.ind_rr_star_v4f4].T
-        c_v = columnnew(v,0,self.mesh.V)
-        V0 = X[c_v].reshape(-1,3,order='F')
-        num = len(self.mesh.ind_rr_star_v4f4)
-        arr3 = np.arange(3*num)
-        n = self._Noscut - 10*num
-        c_t1 = n+4*num+arr3
-        c_t2 = n+7*num+arr3        
-        t1 = X[c_t1].reshape(-1,3,order='F')
-        #ut1 = t1 / np.linalg.norm(t1,axis=1)[:,None]
-        t2 = X[c_t2].reshape(-1,3,order='F')
-        #ut2 = t2 / np.linalg.norm(t2,axis=1)[:,None]
-        if geo: #no use in the project now, need to change!
-            n = self._Ndgeoliou - 13*num -1
-            #c_tu1 = n+num+arr3
-            c_tg1 = n+10*num+arr3
-            #c_c = self._Ndgeoliou - 1        
-            ug1 = X[c_tg1].reshape(-1,3,order='F')
-            return V0,ug1  
-        return V0,t1,t2  
+            _,_,ut1,ut2,_,_ = self.mesh.get_v4_unit_tangents(False,True)
+            n = np.cross(ut1,ut2)
+            n = n / np.linalg.norm(n,axis=1)[:,None]
+        return an, n
 
     def index_of_strip_along_polyline(self):
-        "ver_poly_strip: 2-dim list with different length, at least 2"
+        "ver_poly_strip1: 2-dim list with different length, at least 2"
         w3 = self.get_weight('AAGnet')
         w4 = self.get_weight('AAGGnet')
         diag = True if w3 or w4 else False
@@ -1164,16 +1047,20 @@ class GuidedProjection_AGNet(GuidedProjectionBase):
             iall,iind,_,_ = self.mesh.get_diagonal_vertex_list(5,d) # interval is random
         else:
             iall,iind,_,_ = self.mesh.get_isoline_vertex_list(5,d) # updated, need to check
-        self._ver_poly_strip = [iall,iind]   
+        self._ver_poly_strip1 = [iall,iind]   
         
     def index_of_mesh_polylines(self):
         "index_of_strip_along_polyline without two bdry vts, this include full"
         if self.is_singular:
-            self._ver_poly_strip,_,_ = quadmesh_with_1singularity(self.mesh)
+            self._ver_poly_strip1,_,_ = quadmesh_with_1singularity(self.mesh)
         else:
+            "ver_poly_strip1,ver_poly_strip2"
             iall = self.mesh.get_both_isopolyline(diagpoly=self.switch_diagmeth,
                                                   is_one_or_another=self.set_another_polyline)
-            self._ver_poly_strip = iall        
+            self._ver_poly_strip1 = iall   
+            iall = self.mesh.get_both_isopolyline(diagpoly=self.switch_diagmeth,
+                                                  is_one_or_another=not self.set_another_polyline)
+            self._ver_poly_strip2 = iall        
     
     def get_initial_singular_diagply_normal(self,is_init=False,AGnet=False,CCnet=False):
         V = self.mesh.vertices
@@ -1200,13 +1087,16 @@ class GuidedProjection_AGNet(GuidedProjectionBase):
             Nc = vN[self.ind_rr_vertex]
             return Nc,Vl,Vc,Vr
         
-    def get_poly_strip_normal(self):
+    def get_poly_strip_normal(self,pl1=False,pl2=False):
         "for planar strip: each strip 1 normal as variable, get mean n here"
         V = self.mesh.vertices
-        if self.get_weight('planar_plys'):
-            iall = self.ver_poly_strip
+        
+        if pl1:
+            iall = self.ver_poly_strip1
+        elif pl2:
+            iall = self.ver_poly_strip2    
         else:
-            iall = self.ver_poly_strip[0]
+            iall = self.ver_poly_strip1[0]    
         n = np.array([0,0,0])
         for iv in iall:
             if len(iv)==2:
@@ -1234,12 +1124,14 @@ class GuidedProjection_AGNet(GuidedProjectionBase):
             t = np.vstack((t,ti))
         return t[1:,:]
     
-    def get_mesh_planar_normal_or_plane(self,pln=False,scale=None):
+    def get_mesh_planar_normal_or_plane(self,pl1=False,pl2=False,pln=False,scale=None):
         V = self.mesh.vertices
-        if self.get_weight('planar_plys'):
-            iall = self.ver_poly_strip
+        if pl1:
+            iall = self.ver_poly_strip1
+        elif pl2:
+            iall = self.ver_poly_strip2    
         else:
-            iall = self.ver_poly_strip[0]
+            iall = self.ver_poly_strip1[0]    
         num = len(iall)
         
         if not pln:
@@ -1319,31 +1211,6 @@ class GuidedProjection_AGNet(GuidedProjectionBase):
         if is_poly:
             Vl,Vr = self.mesh.vertices[vlr[0]], self.mesh.vertices[vlr[1]]
             return self.mesh.make_polyline_from_endpoints(Vl,Vr)
-        
-        
-    def agnet_liouville_const_angle(self, initialized=False):
-        if self.get_weight('agnet_liouville') == 0:
-            return None
-        if initialized:
-            X = self._X0
-        else:
-            X = self.X
-        num = len(self.mesh.ind_rr_star_v4f4)
-        arr3 = np.arange(3*num)
-        n = self._Ndgeoliou - 13*num -1
-        c_tu1 = n+num+arr3
-        c_tg1 = n+10*num+arr3
-        c_c = self._Ndgeoliou - 1            
-
-        ut1 = X[c_tu1].reshape(-1,3,order='F')
-        ug1 = X[c_tg1].reshape(-1,3,order='F')
-        cos = np.einsum('ij,ij->i',ut1,ug1)
-        cos0 = X[c_c]
-        A = np.arccos(cos)*180/np.pi
-        emean = '%.2f' % np.mean(A)
-        emax = '%.2f' % np.max(A)
-        print('LIOUVILLE CONST ANGLE:',emean,emax)
-        return cos,cos0
 
     def get_nonsymmetric_edge_ratio(self,diagnet=False):
         """each quadface, oriented edge1,edge2 
@@ -1378,23 +1245,7 @@ class GuidedProjection_AGNet(GuidedProjectionBase):
             ind = np.where((eL[il1]-eL[il2])**2-self.nonsym_eps>0)[0]
             s[ind] = np.sqrt((eL[il1][ind]-eL[il2][ind])**2-self.nonsym_eps)
             print('%.2g'% np.mean((eL[il1]-eL[il2])**2))
-            return eL,s  
-                
-            # if False:
-            #     v0,va,vb = v1,v2,v4
-            #     ll1 = np.linalg.norm(V[v2]-V[v1],axis=1)**2
-            #     ll2 = np.linalg.norm(V[v4]-V[v1],axis=1)**2
-            #     ck = np.where(ll1-ll2<0)[0]
-            #     if len(ck)>len(ll1)/2:
-            #         "most l1<l2"
-            #         ll1,ll2 = ll2,ll1
-            #         self.ind_nonsym_v124 = [v0,vb,va]
-            #     else:
-            #         self.ind_nonsym_v124 = [v0,va,vb] 
-            #     s = np.zeros(len(ll1))
-            #     ind = np.where(ll1/ll2-1-self.nonsym_eps>0)[0]
-            #     s[ind] = np.sqrt(ll1[ind]/ll2[ind]-1-self.nonsym_eps)
-            #     return s      
+            return eL,s    
 
     def get_conjugate_diagonal_net(self,normal=True):
         "CCD-net vertex normal"
@@ -1434,11 +1285,15 @@ class GuidedProjection_AGNet(GuidedProjectionBase):
             or self.get_weight('GGAnet')or self.get_weight('AGGnet') \
             or self.get_weight('AAGGnet')or self.get_weight('GGAAnet') :
            "agnet_liouville, planar_geodesic"
+           if self.get_weight('planar_geodesic'):
+               strip = self.ver_poly_strip1
+           else:
+               strip = None
            if self.weight_checker<1:
                idck = self.mesh.ind_ck_tian_rr_vertex,#self.mesh.ind_ck_rr_vertex,
            else:
                idck = None
-           H,r = con_anet_geodesic(self.ver_poly_strip,self.set_another_polyline,
+           H,r = con_anet_geodesic(strip,self.set_another_polyline,
                                    checker_weight=self.weight_checker,
                                    id_checker=idck, #self.mesh.ind_ck_tian_rr_vertex,#self.mesh.ind_ck_rr_vertex,
                                    **self.weights)  
@@ -1575,11 +1430,19 @@ class GuidedProjection_AGNet(GuidedProjectionBase):
                                                    self.ind_rr_vertex,**self.weights)   
             self.add_iterative_constraint(H, r, 'singular')
 
-        if self.get_weight('planar_plys'):
-           H,r = con_planar_1familyof_polylines(self.ver_poly_strip,
-                                                is_parallxy_n=False, #TO SET
-                                                **self.weights)              
-           self.add_iterative_constraint(H, r, 'planar_plys')
+        if self.get_weight('planar_ply1'):
+            ## only for \obj_cheng\every_5_PPQ.obj'
+            matrix = self.ver_poly_strip1
+            #matrix = self.mesh.rot_patch_matrix[:,::5].T
+            H,r = con_planar_1familyof_polylines(self._Nppq,matrix,
+                                                 is_parallxy_n=False, #TO SET
+                                                 **self.weights)              
+            self.add_iterative_constraint(H, r, 'planar_ply1')
+        if self.get_weight('planar_ply2'):
+            H,r = con_planar_1familyof_polylines(self._Nppo,self.ver_poly_strip2,
+                                                 is_parallxy_n=False, #TO SET
+                                                 **self.weights)              
+            self.add_iterative_constraint(H, r, 'planar_ply2')   
            
         
         if self.get_weight('diag_1_asymptotic') or self.get_weight('diag_1_geodesic'):

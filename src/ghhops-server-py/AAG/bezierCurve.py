@@ -145,6 +145,7 @@ def bezier_tangent_atparameters(ctrl_points,ti):
     T = Q / np.linalg.norm(Q,axis=1)[:,None]
     return T
 
+
 def bezier_curvature_ataparameter(ctrl_points,ti,surfN=None,is_absolute=True):
     "P'(ti), P''(ti), P'''(ti) ,  ti=1/5, 2/5, 3/5, 4/5"
     n = len(ctrl_points) #==6

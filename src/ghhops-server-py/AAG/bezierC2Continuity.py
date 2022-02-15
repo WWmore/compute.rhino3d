@@ -506,13 +506,6 @@ class BezierSpline(object):
             if is_seg:
                 return all_pi, all_pi[:-1], all_pi[1:]
             return Polyline(all_pi,closed=False)
-        
-    def export_control_points(self):
-        pi = self.control_points(is_points=False,is_polygon=False,is_curve=False,is_seg=False)
-        path = r"C:\Users\WANGH0M\Desktop\geometrylab7\read_txt"
-        np.savetxt(path+'\ctrl_pi.txt', pi, fmt='%10.7f')
-        print('\n Save control points!')
-
 
     def get_curvature(self,is_asy_or_geo=True,is_dense=False,num_div=5,
                       #is_onlyinner=True,
@@ -644,8 +637,6 @@ class BezierSpline(object):
                             E3 = -E3
                 else:
                     "geodesic"
-                    #S0,S5 = np.cross(N0,E1[0]), np.cross(N5,E1[-1])
-                    ##print(di.shape,S0.shape,S5.shape,N0.shape,N5.shape,E1.shape)
                     if np.dot(S0,di[0])<0 and np.dot(S5,di[-1])<0:
                         di = -di
                         
