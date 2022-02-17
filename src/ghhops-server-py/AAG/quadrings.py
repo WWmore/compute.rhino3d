@@ -1970,73 +1970,61 @@ class MMesh(Mesh):
                     select_v0.append(iv0)
                     select_vs_v0.append(jv0)
         return alls_v0,alls_vs_v0,select_v0,select_vs_v0
-
-    ## using this first for choosing mesh polys, with full boundary inds.
+    ## using this first for choosing mesh polys
     def get_both_isopolyline(self,diagpoly=False,is_one_or_another=False,
                              is_poly=False,only_inner=False,interval=1):
         "AG-net: work for rectangular-patch + cylinder-annulus"
-        if only_inner:
-            v,_,_,_,_ = self.rr_star_corner
-        ipllist = []
-        vl = vr = np.array([],dtype=int)
-        if diagpoly:
-            if len(self.corner)!=0:
-                "surface shape: rectangular-patch"
-                vf1 = self.get_a_boundary_L_strip(direction=True)
-                vf2 = self.get_a_boundary_L_strip(direction=False)
+        _,_,lj = self.vertex_ring_vertices_iterators(return_lengths=True)
+        o56 = np.where(lj>4)[0]
+        o4 = np.where(lj==4)[0]
+        boundary = self.boundary_vertices()
+        inv4 = np.intersect1d(o4, boundary)  ## if !=0, bdry has V4
+        if len(o56)==0 and len(inv4)==0: ## no singular inside, no v4 in bdry
+            "regular-patch-shape or rotational-shape"
+            ipllist = []
+            vl = vr = np.array([],dtype=int)
+            if diagpoly:
+                if len(self.corner)!=0:
+                    "surface shape: rectangular-patch"
+                    vf1 = self.get_a_boundary_L_strip(direction=True)
+                    vf2 = self.get_a_boundary_L_strip(direction=False)
+                else:
+                    "surface shape: cylinder-annulus"
+                    vf1 = self.get_cylinder_annulus_mesh_diagonal_oriented_vertices(True)
+                    vf2 = self.get_cylinder_annulus_mesh_diagonal_oriented_vertices(False)
+                allplv = vf1 if is_one_or_another else vf2
+                for i, k in enumerate(allplv):
+                    if i%interval==0:
+                        iv,_ = self.get_diagonal_polyline_from_2points(k,is_poly=False)   
+                        if len(iv)!=0:
+                           ipllist.append(iv)
+                           vl = np.r_[vl,iv[:-1]]
+                           vr = np.r_[vr,iv[1:]]
             else:
-                "surface shape: cylinder-annulus"
-                vf1 = self.get_cylinder_annulus_mesh_diagonal_oriented_vertices(True)
-                vf2 = self.get_cylinder_annulus_mesh_diagonal_oriented_vertices(False)
-            vf = vf1 if is_one_or_another else vf2
-
-            for i, k in enumerate(vf):
-                if i%interval==0:
-                    iv,_ = self.get_diagonal_polyline_from_2points(k,is_poly=False)   
-                    if len(iv)!=0:
-                       ipllist.append(iv)
-                       vl = np.r_[vl,iv[:-1]]
-                       vr = np.r_[vr,iv[1:]]
-            # else:
-            #     for k in vf1:
-            #         iv,_ = self.get_diagonal_polyline_from_2points(k,is_poly=False)
-            #         if len(iv)!=0:
-            #             ipllist.append(iv)
-            #             vl = np.r_[vl,iv[:-1]]
-            #             vr = np.r_[vr,iv[1:]]
-            #     for k in vf2:
-            #         iv,_ = self.get_diagonal_polyline_from_2points(k,is_poly=False)
-            #         if len(iv)!=0:
-            #             ipllist.append(iv)
-            #             vl = np.r_[vl,iv[:-1]]
-            #             vr = np.r_[vr,iv[1:]]            
-        else: 
-            "more general, one boundary v"
-            ### below need to check for different direction, and patch/annulus
-            if len(self.corner)!=0:
-                "patch"
-                vb1,_ = self.get_i_boundary_vertex_indices(0) # i=0,1,2,3
-                try:
-                    vb2,_ = self.get_i_boundary_vertex_indices(1)# i=0,1,2,3 # to check if 1 or 2#TODO
-                except:
-                    vb2,_ = self.get_i_boundary_vertex_indices(1)
-                vb = vb1 if is_one_or_another else vb2
-                allplv = self.get_isoline_between_2bdry(vb)   
-                #ipllist = allplv
-                
+                if len(self.corner)!=0:
+                    M = self.patch_matrix
+                else:
+                    M = self.rot_patch_matrix  
+                if not is_one_or_another:
+                    M = M.T
                 if only_inner:
-                    if allplv[0][0] in self.corner:
-                        allplv.pop(0)
-                    if allplv[-1][0] in self.corner:
-                        allplv.pop()
-            else:
-                "annulus"
-                M = self.rot_patch_matrix if is_one_or_another else self.rot_patch_matrix.T
+                    M = M[1:-1,1:-1]
                 allplv = M.tolist() 
-                #ipllist = allplv
-                ##print(allplv,M.shape)
-                
-            #for iv in allplv:
+                for i, iv in enumerate(allplv):
+                    if i%interval==0:
+                        ipllist.append(iv)
+                        if len(iv)!=0:
+                            vl = np.r_[vl,iv[:-1]]
+                            vr = np.r_[vr,iv[1:]]
+        elif len(o56)==0 and len(self.corner)!=0:
+            "schwarzh_02_diag_unitscale_AAG_AAG"        
+            ipl1,ipl2 = self.get_2families_polyline_from_1closed_bdry(diag=diagpoly,
+                                                         interval=interval,
+                                                         inner=False) ## need to choose True or False
+            allplv = ipl1[1] if is_one_or_another else ipl2[1]
+            
+            ipllist = []
+            vl = vr = np.array([],dtype=int)
             for i, iv in enumerate(allplv):
                 if i%interval==0:
                     ipllist.append(iv)
@@ -2044,34 +2032,12 @@ class MMesh(Mesh):
                         vl = np.r_[vl,iv[:-1]]
                         vr = np.r_[vr,iv[1:]]
 
-            # else:
-            #     allplv1 = self.get_isoline_between_2bdry(vb1)
-            #     allplv2 = self.get_isoline_between_2bdry(vb2)
-            #     if only_inner:
-            #         if allplv1[0][0] in self.corner:
-            #             allplv1.pop(0)
-            #         if allplv1[-1][0] in self.corner:
-            #             allplv1.pop()
-            #     if only_inner:
-            #         if allplv2[0][0] in self.corner:
-            #             allplv2.pop(0)
-            #         if allplv2[-1][0] in self.corner:
-            #             allplv2.pop()
-            #     ipllist.extend(allplv1,allplv2)
-            #     for iv in allplv1:
-            #         if len(iv)!=0:
-            #             vl = np.r_[vl,iv[:-1]]
-            #             vr = np.r_[vr,iv[1:]]
-            #     for iv in allplv2:
-            #         if len(iv)!=0:
-            #             vl = np.r_[vl,iv[:-1]]
-            #             vr = np.r_[vr,iv[1:]]
         if is_poly:
             Vl,Vr = self.vertices[vl], self.vertices[vr]
             return self.make_polyline_from_endpoints(Vl,Vr)
         else:    
             return ipllist
-       
+
     def get_strips_along_polylines(self,interval,diag=True,
                                    another_direction=True,big=True):
         "AG-NET: checkerboard way to get strips along geodesic"
@@ -3594,6 +3560,159 @@ class MMesh(Mesh):
         return allN
 
     def get_poly_quintic_Bezier_spline_crvs_checker(self,mesh,normal,
+                                                    efair=0.01,
+                                                    is_asym_or_geo=True,
+                                                    diagpoly=False,
+                                                    is_one_or_another=False,
+                                                    is_checker=1, ### checker seletion
+                                                    interval=1,
+                                                    is_onlyinner=False,
+                                                    is_dense=False,num_divide=5,
+                                                    is_modify=False,
+                                                    is_smooth=0.0):
+        "For each polyline, 1.[Pi,Ti,Ni,ki] 2.opt to get ctrl-p,polygon,crv"
+        from curvature import frenet_frame
+        from bezierC2Continuity import BezierSpline
+        V = mesh.vertices
+        "using surface normal computed by A-net or G-net"
+        N = normal ### all surf_normal, include bdry
+        kck = is_checker
+        iall = self.get_both_isopolyline(diagpoly,is_one_or_another,interval=interval)
+        
+        an = np.array([0,0,0])
+        ruling = np.array([0,0,0])
+        all_kg=all_kn=all_k=all_tau=np.array([])
+        arr = np.array([],dtype=int)
+        varr = np.array([],dtype=int)
+        num = 0
+        P=Pl=Pr = np.array([0,0,0])
+        crvPl=crvPr = np.array([0,0,0])
+        frm1=frm2=frm3 = np.array([0,0,0])
+        ctrlP = []
+
+        if kck !=1:
+            if self._rot_patch_matrix is not None:
+                num_poly = 1
+                if diagpoly:
+                    num_poly -= 1 ## -=2 IF PATCH, ELIF ROTATIOANL =-1
+            elif self._patch_matrix is not None:
+                num_poly,num_allpoly = 0,len(iall)-1
+                if diagpoly:
+                    ##NOTE: TOSELECT:
+                    num_poly -= 2 ## -=2 IF PATCH, ELIF ROTATIOANL =-1
+                    num_allpoly += 2
+            
+        row_list = []
+        dense_row_list = []
+        for iv in iall:
+            "Except two endpoints on the boudnary"
+            bool_value=False
+            if kck !=1:
+                if len(self.corner)!=0:
+                    "if only-patch-shape:"
+                    bool_value = kck !=0 and 0<num_poly and num_poly<num_allpoly and num_poly%(kck)==0 and len(iv)>=(kck*3+1)
+                else:
+                    "if rotational-shape"
+                    bool_value = kck !=0 and num_poly%(kck)==0 and len(iv)>=(kck*3+1)
+            else:
+                bool_value = len(iv)>=4 if is_onlyinner else len(iv)>=3
+
+            if bool_value:
+                if kck==1:
+                    iv_sub,iv_sub1,iv_sub3 = iv[1:-1],iv[:-2],iv[2:]
+                else:
+                    iv_sub,iv_sub1,iv_sub3 = iv[kck:-kck],iv[kck-1:-kck-1],iv[kck+1:-kck+1]
+
+                Pi,Ni = V[iv_sub], N[iv_sub]### SURF-NORMAL
+                frame = frenet_frame(Pi,V[iv_sub1],V[iv_sub3])
+                Ti,Ef2,Ef3 = frame ### Frenet frame (E1,E2,E3)
+                if kck==1 and not is_onlyinner:
+                    Pi,Ni = V[iv], N[iv]
+                    T0 = Pi[1]-Pi[0]
+                    T0 /= np.linalg.norm(T0)
+                    Tend = Pi[-1]-Pi[-2]
+                    Tend /= np.linalg.norm(Tend)
+                    Ti = np.vstack((T0,Ti,Tend))
+                    Ef3 = np.vstack((Ni[0],Ef3,Ni[-1]))
+                    Ef2 = np.vstack((np.cross(Ni[0],T0),Ef2,np.cross(Ni[-1],Tend)))
+                    iv_ck = iv
+                elif kck==1 and is_onlyinner:
+                    iv_ck = iv[1:-1]
+
+                #"if asym: binormal==Ni; elif geo: binormal == t x Ni"
+                if is_asym_or_geo:
+                    "asymptotic; orient binormal with surf-normal changed at inflections"
+                    E3i = Ni
+                    #i = np.where(np.einsum('ij,ij->i',Ef3,E3i)<0)[0]
+                    #E3i[i] = -E3i[i]
+                else:
+                    "geodesic"
+                    E3i = np.cross(Ti,Ni)
+
+                if kck !=1:
+                    "checker_vertex_partial_of_submesh case"
+                    Pi = Pi[::kck]
+                    Ti = Ti[::kck]
+                    E3i = E3i[::kck]
+                    iv_ck = iv_sub[::kck]
+
+                bs = BezierSpline(degree=5,continuity=3,
+                                  efair=efair,itera=200,
+                                  endpoints=Pi,tangents=Ti,normals=E3i)
+
+                p, pl, pr = bs.control_points(is_points=True,is_seg=True)
+                P,Pl,Pr = np.vstack((P,p)), np.vstack((Pl,pl)), np.vstack((Pr,pr))
+                ctrlP.append(p)
+                crvp,crvpl,crvpr = bs.control_points(is_curve=True,is_seg=True)
+                crvPl, crvPr= np.vstack((crvPl,crvpl)), np.vstack((crvPr,crvpr))
+                
+                row_list.append(len(Pi))
+                if not is_dense:
+                    kg,kn,k,tau,d = bs.get_curvature(is_asym_or_geo)
+                    an = np.vstack((an,Pi))
+                    oNi = np.cross(E3i,Ti)
+                    frm1 = np.vstack((frm1,Ti))  ## Frenet-E1
+                    frm2 = np.vstack((frm2,oNi)) ## Frenet-E2
+                    frm3 = np.vstack((frm3,E3i)) ## Frenet-E3
+
+                    if False:
+                        i = np.where(np.einsum('ij,ij->i',E3i,d)<0)[0]
+                        d[i] = -d[i]
+
+                    arr = np.r_[arr, np.arange(len(iv_ck)-1) + num]
+                    num += len(iv_ck)
+                    varr = np.r_[varr,iv_ck]
+
+                else:
+                    kg,kn,k,tau,pts,d,frmi = bs.get_curvature(is_asym_or_geo,
+                                                            True,num_divide,
+                                                            is_modify,
+                                                            is_smooth)
+                    dense_row_list.append(len(d))
+                    an = np.vstack((an,pts))
+                    frm1 = np.vstack((frm1,frmi[0])) ## Frenet-E1
+                    frm2 = np.vstack((frm2,frmi[1])) ## Frenet-E2
+                    frm3 = np.vstack((frm3,frmi[2])) ## Frenet-E3
+
+                    arr = np.r_[arr, np.arange(len(kg)-1) + num]
+                    num += len(kg)
+                    
+                ruling = np.vstack((ruling,d))
+                all_kg,all_kn = np.r_[all_kg,kg],np.r_[all_kn,kn]
+                all_k,all_tau = np.r_[all_k,k],np.r_[all_tau,tau]
+
+            if kck !=1:        
+                num_poly +=1
+        
+        P, Pl, Pr, crvPl, crvPr = P[1:],Pl[1:],Pr[1:],crvPl[1:],crvPr[1:]   
+        polygon = None ##self.make_polyline_from_endpoints(Pl, Pr)
+        crv = None ##self.make_polyline_from_endpoints(crvPl, crvPr)
+        return P,polygon,crv,np.array(ctrlP,dtype=object),\
+               [an[1:],frm1[1:],frm2[1:],frm3[1:]],\
+               [varr,an[1:],ruling[1:],arr,row_list,dense_row_list],\
+               [all_kg,all_kn,all_k,all_tau]
+
+    def get_poly_quintic_Bezier_spline_crvs_checker00(self,mesh,normal,
                                                     efair=0.01,
                                                     is_asym_or_geo=True,
                                                     diagpoly=False,

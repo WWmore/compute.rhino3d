@@ -508,7 +508,6 @@ class BezierSpline(object):
             return Polyline(all_pi,closed=False)
 
     def get_curvature(self,is_asy_or_geo=True,is_dense=False,num_div=5,
-                      #is_onlyinner=True,
                       is_modify=False,is_smooth=0.0):
         """ from Bezier curves P(t) and  given surface normals n at vertices
             to get  t // P'(t), t' // P'', s = n x t
