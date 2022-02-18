@@ -121,6 +121,15 @@ class Gridshell_AGNet(MMesh):
         return np.r_[v1,v],np.r_[v,v3],np.r_[v2,v],np.r_[v,v4],\
             np.r_[va,v],np.r_[v,vc],np.r_[vb,v],np.r_[v,vd]
 
+    def plot_2family_polylines(self,rot=False):
+        if rot:
+            M = self.rot_patch_matrix
+        else:
+            M = self.patch_matrix
+        v1l,v1r = M[:,:-1].flatten(), M[:,1:].flatten()
+        v2l,v2r = M[:-1,:].flatten(), M[1:,:].flatten()      
+        return v1l,v1r,v2l,v2r
+
     def plot_boundary_polylines(self,i):
         v,_ = self.get_i_boundary_vertex_indices(i)
         return v[:-1],v[1:]

@@ -233,6 +233,61 @@ def polyline(mesh:rhino3dm.Mesh):
 #==================================================================
 
 @hops.component(
+    "/patch_net",
+    name="patch_crvnetwork",
+    nickname="network",
+    description="Get 2 familes of polylines.",
+    inputs=[
+        hs.HopsMesh("mesh", "Mesh", "The optimized mesh.")],
+    outputs=[
+            hs.HopsCurve("polyline1", "pl1", access=hs.HopsParamAccess.LIST),
+            hs.HopsCurve("polyline2", "pl2", access=hs.HopsParamAccess.LIST),
+            ]
+)
+def patch(mesh:rhino3dm.Mesh):
+    M = _reading_mesh(mesh)
+    V = M.vertexlist
+    ipl11,ipl12,ipl21,ipl22 = M. plot_2family_polylines(rot=False)
+    pl1,pl2 = [],[]
+    for i in range(len(ipl11)):
+        a = rhino3dm.Point3d(V[ipl11][i][0],V[ipl11][i][1],V[ipl11][i][2])
+        b = rhino3dm.Point3d(V[ipl12][i][0],V[ipl12][i][1],V[ipl12][i][2])
+        pl1.append(rhino3dm.LineCurve(a,b))
+    for i in range(len(ipl21)):
+        a = rhino3dm.Point3d(V[ipl21][i][0],V[ipl21][i][1],V[ipl21][i][2])
+        b = rhino3dm.Point3d(V[ipl22][i][0],V[ipl22][i][1],V[ipl22][i][2])
+        pl2.append(rhino3dm.LineCurve(a,b))
+    return pl1,pl2
+#==================================================================
+@hops.component(
+    "/rotational_net",
+    name="rot_crvnetwork",
+    nickname="network",
+    description="Get 2 familes of polylines.",
+    inputs=[
+        hs.HopsMesh("mesh", "Mesh", "The optimized mesh.")],
+    outputs=[
+            hs.HopsCurve("polyline1", "pl1", access=hs.HopsParamAccess.LIST),
+            hs.HopsCurve("polyline2", "pl2", access=hs.HopsParamAccess.LIST),
+            ]
+)
+def rotational(mesh:rhino3dm.Mesh):
+    M = _reading_mesh(mesh)
+    V = M.vertexlist
+    ipl11,ipl12,ipl21,ipl22 = M. plot_2family_polylines(rot=True)
+    pl1,pl2 = [],[]
+    for i in range(len(ipl11)):
+        a = rhino3dm.Point3d(V[ipl11][i][0],V[ipl11][i][1],V[ipl11][i][2])
+        b = rhino3dm.Point3d(V[ipl12][i][0],V[ipl12][i][1],V[ipl12][i][2])
+        pl1.append(rhino3dm.LineCurve(a,b))
+    for i in range(len(ipl21)):
+        a = rhino3dm.Point3d(V[ipl21][i][0],V[ipl21][i][1],V[ipl21][i][2])
+        b = rhino3dm.Point3d(V[ipl22][i][0],V[ipl22][i][1],V[ipl22][i][2])
+        pl2.append(rhino3dm.LineCurve(a,b))
+    return pl1,pl2
+#==================================================================
+
+@hops.component(
     "/boundary",
     name="boundaries",
     nickname="bdry",
