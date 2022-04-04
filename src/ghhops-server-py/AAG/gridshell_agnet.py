@@ -116,10 +116,37 @@ class Gridshell_AGNet(MMesh):
 
     ##@on_trait_change('show_1st_geodesic,show_2nd_geodesic')
     def plot_4family_polylines(self):
-        v,v1,v2,v3,v4 = self.rr_star[self.ind_rr_star_v4f4].T
+        "note: include multiple pls, donot find way to remove"
+        # v,v1,v2,v3,v4 = self.rr_star[self.ind_rr_star_v4f4].T
         v,va,vb,vc,vd = self.rr_star_corner
+        v,v1,v2,v3,v4 = self.rr_star.T
         return np.r_[v1,v],np.r_[v,v3],np.r_[v2,v],np.r_[v,v4],\
             np.r_[va,v],np.r_[v,vc],np.r_[vb,v],np.r_[v,vd]
+
+    def get_vertices_matrix(self,rot=False):
+        "Note: problem to work in GH"
+        if rot:
+            M = self.rot_patch_matrix
+        else:
+            M = self.patch_matrix
+        return M
+
+    def plot_4family_vertices(self,rot=False):
+        "Note: problem to work in GH"
+        if rot:
+            M = self.rot_patch_matrix
+        else:
+            M = self.patch_matrix
+        ipt1,ipt2 = M, M.T
+        # ipt3,ipt4 = [],[]
+        # def diagnet(M):
+        #     ip = []
+        #     a,b = M.shape
+        #     for i in range(a-1)+1:
+        #         j = np.arange(i)
+        ipt3,_,_,_ = self.get_diagonal_vertex_list(interval=1,another_direction=True)
+        ipt4,_,_,_ = self.get_diagonal_vertex_list(interval=1,another_direction=False)
+        return ipt1.tolist(),ipt2.tolist(),ipt3,ipt4
 
     def plot_2family_polylines(self,rot=False):
         if rot:
@@ -128,6 +155,20 @@ class Gridshell_AGNet(MMesh):
             M = self.patch_matrix
         v1l,v1r = M[:,:-1].flatten(), M[:,1:].flatten()
         v2l,v2r = M[:-1,:].flatten(), M[1:,:].flatten()      
+        return v1l,v1r,v2l,v2r
+
+    def plot_2family_diagonal_polylines(self):
+        ipt3,_,_,_ = self.get_diagonal_vertex_list(interval=1,another_direction=True)
+        ipt4,_,_,_ = self.get_diagonal_vertex_list(interval=1,another_direction=False)
+        v1l=v1r=v2l=v2r=np.array([],dtype=int)
+        for pl in ipt3:
+            "different list length"
+            v1l = np.r_[v1l, pl[:-1]]
+            v1r = np.r_[v1r, pl[1:]]
+        for pl in ipt4:
+            "different list length"
+            v2l = np.r_[v2l, pl[:-1]]
+            v2r = np.r_[v2r, pl[1:]]
         return v1l,v1r,v2l,v2r
 
     def plot_boundary_polylines(self,i):
