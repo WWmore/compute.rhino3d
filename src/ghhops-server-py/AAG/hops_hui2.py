@@ -446,7 +446,10 @@ def bezier(mesh:rhino3dm.Mesh,web,vn:rhino3dm.Vector3d,i,w1,is_ck,num_ck,is_optr
 #==================================================================
 
 if __name__ == "__main__":
-    #app.run(host="10.8.0.10",debug=True)
-    app.run(host="10.8.0.12",debug=True) ##Hui's VPN
-    #app.run(debug=True)
+    ### VERY IMPORTANT: corresponding to the path-connection in the gh-file
+    #app.run(host="10.8.0.10",debug=True) ## Florian's VPN
+    #app.run(host="10.8.0.11",debug=True) ## Eike's VPN
+    #app.run(host="10.8.0.13",debug=True) ## Sebastian's VPN
+    #app.run(host="10.8.0.12",debug=True) ## Hui's VPN
+    app.run(debug=True) ## ANYONE'S local
 
