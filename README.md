@@ -6,13 +6,10 @@
 ![https://www.rhino3d.com/compute](https://www.rhino3d.com/en/7.420921340460724505/images/rhino-compute-new.svg)
 
 
-
-## Publication
-
-This repository contains the implementation associated with the paper "Designing Asymptotic Geodesic Hybrid Gridshells", which can be found [here](https://doi.org/10.1016/j.cad.2022.103378). 
-Please cite the paper if you use this code in your project. 
-
 <section class="section" id="BibTeX">
+    This repository contains the implementation associated with the paper "Designing Asymptotic Geodesic Hybrid Gridshells", which can be found [here](https://doi.org/10.1016/j.cad.2022.103378). 
+    Please cite the paper if you use this code in your project. 
+
   <div class="container is-max-desktop content">
     <h2 class="title">BibTeX</h2>
     <pre><code>@Article{AGG2022,
@@ -34,11 +31,7 @@ Implementation source :snake: code has been released in [Github :octocat:](https
 A user-friendly design tool has been realized by integrating the optimization into the CAD system Rhinoceros3D. Our plugin allows the user to define the main inputs to the optimization, the initial mesh, the web type, strip width and optimization parameters like the number of iterations and weights. The results, namely the optimized mesh,
 strip boundaries in piecewise quintic Bezier form, ruling vectors, the developable strips as well as their developments are returned as Rhinoceros3D geometry objects. The optimization is implemented in CPython and called from Grasshopper, Rhinoceros’ parametric design extension, using the [Hops component](https://developer.rhino3d.com/guides/compute/hops-component/). This allows the user to offload the actual computation to a more powerful remote machine, if desired. 
 
-<div class="row">
-    <div class="col-sm mt-3 mt-md-0">
-        {% include figure.html path="hops.png" title="example image" class="img-fluid rounded z-depth-1" zoomable=true%}
-    </div>
-</div>
+![File](hops.png)
 
 
 ## Contributions
